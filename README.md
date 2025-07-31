@@ -2,6 +2,10 @@
   <summary><strong>Table of Contents</strong></summary>  
   
   - [Prerequisites](#prerequisites)
+  - [Commands](#commands)
+  - [Container](#container)
+    - [Listing](#listing)
+    - [Inventory-db](#inventory-db)
 </details>  
 
 
@@ -35,3 +39,63 @@ docker --version
 docker compose version
 ```  
 
+
+
+# Commands
+**Manage containers with docker-compose**  
+| command | detail     |
+|---------|------------|
+|||
+
+**Manage containers manually one by one**  
+| command                                           | detail                            |
+|---------------------------------------------------|-----------------------------------|
+| `sudo docker images`                              | List all container images         |
+| `sudo docker ps -a`                               | List all container running or not |
+| `sudo docker stop <container_id>`                 | Stop a running container with id  |
+| `sudo docker rm <container_id>`                   | Destroy container to restart it   |
+| `sudo docker run -it <image_name>:<version> bash` | Run container & go inside         |
+
+
+
+# Container
+## Listing
+| name         | volume       ||||
+|--------------|--------------||
+| inventory-db | inventory-db ||||
+|||||
+
+
+## Inventory-db
+
+**Build container image**  
+```
+sudo build -t inventory-db .
+```  
+
+**Volume creation**  
+```
+sudo docker volume create inventory-db
+```  
+
+**Run the container**  
+```
+docker run -d \
+  --name inventory-db \
+  --env-file .env \
+  -p 5432:5432 \
+  -v inventory-db:/var/lib/postgresql/data \
+  inventory-db:v1
+```  
+
+**Add/Delete element into database PostgreSQL**  
+```
+sudo docker exec -it inventory-db psql -U hao -d inventory-db
+```  
+
+```
+INSERT INTO inventory (title, description)
+VALUES ('title_1', 'description_1')
+
+SELECT * FROM inventory
+```  
