@@ -6,6 +6,7 @@
   - [Container](#container)
     - [Listing](#listing)
     - [Inventory-db](#inventory-db)
+    - [Billing-db](#billing-db)
 </details>  
 
 
@@ -70,7 +71,7 @@ docker compose version
 
 **Build container image**  
 ```
-sudo build -t inventory-db .
+sudo build -t inventory-db:v1 .
 ```  
 
 **Volume creation**  
@@ -99,3 +100,27 @@ VALUES ('title_1', 'description_1')
 
 SELECT * FROM inventory
 ```  
+
+
+## Billing-db
+
+**Build container image**  
+```
+sudo build -t billing-db:v1 .
+```  
+
+**Volume creation**  
+```
+sudo docker volume create billing-db
+```  
+
+**Run the container**  
+```
+docker run -d \
+  --name billing-db \
+  --env-file .env \
+  -p 5432:5432 \
+  -v billing-db:/var/lib/postgresql/data \
+  billing-db:v1
+```  
+
