@@ -6,6 +6,7 @@
   - [Container](#container)
     - [Listing](#listing)
     - [Inventory-db](#inventory-db)
+    - [Inventory-app](#inventory-app)
     - [Billing-db](#billing-db)
 </details>  
 
@@ -81,7 +82,7 @@ sudo docker volume create inventory-db
 
 **Run the container**  
 ```
-docker run -d \
+sudo docker run -d \
   --name inventory-db \
   --env-file .env \
   -p 5432:5432 \
@@ -89,16 +90,39 @@ docker run -d \
   inventory-db:v1
 ```  
 
-**Add/Delete element into database PostgreSQL**  
+**Add/Delete manually element into database PostgreSQL**  
 ```
 sudo docker exec -it inventory-db psql -U hao -d inventory-db
 ```  
 
 ```
 INSERT INTO inventory (title, description)
-VALUES ('title_1', 'description_1')
+VALUES ('batman', 'batman is about a man who is also a bat')
 
 SELECT * FROM inventory
+```  
+
+
+## Inventory-app
+
+**Build container image**  
+```
+sudo docker build -t inventory-app:v1 .
+```  
+
+**Run the container**  
+```
+sudo docker run -d \
+  --name inventory-app \
+  --link inventory-db \
+  -p 8080:8080 \
+  --env-file .env \
+  inventory-app:v1
+```  
+
+**Test the API with FastAPI Swagger**  
+```
+http://localhost:8080/docs
 ```  
 
 
