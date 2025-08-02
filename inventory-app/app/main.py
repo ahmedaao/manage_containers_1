@@ -12,11 +12,11 @@ app = FastAPI()
 
 def get_db_connection():
     return psycopg2.connect(
-        host=os.getenv("POSTGRES_CONTAINER"),
-        port=os.getenv("POSTGRES_PORT"),
-        database=os.getenv("POSTGRES_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD")
+        host=os.getenv("INVENTORY_DB_HOST"),
+        port=os.getenv("INVENTORY_DB_PORT"),
+        database=os.getenv("INVENTORY_DB_NAME"),
+        user=os.getenv("INVENTORY_DB_USER"),
+        password=os.getenv("INVENTORY_DB_PASSWORD")
     )
 
 class Movie(BaseModel):

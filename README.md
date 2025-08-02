@@ -72,7 +72,7 @@ docker compose version
 
 **Build container image**  
 ```
-sudo build -t inventory-db:v1 .
+sudo docker build -t inventory-db:v1 .
 ```  
 
 **Volume creation**  
@@ -96,10 +96,8 @@ sudo docker exec -it inventory-db psql -U hao -d inventory-db
 ```  
 
 ```
-INSERT INTO inventory (title, description)
-VALUES ('batman', 'batman is about a man who is also a bat')
-
-SELECT * FROM inventory
+INSERT INTO inventory (id, title, description) VALUES (1, 'batman', 'batman is a good movie');
+SELECT * FROM inventory;
 ```  
 
 
@@ -112,12 +110,7 @@ sudo docker build -t inventory-app:v1 .
 
 **Run the container**  
 ```
-sudo docker run -d \
-  --name inventory-app \
-  --link inventory-db \
-  -p 8080:8080 \
-  --env-file .env \
-  inventory-app:v1
+docker run -d --name inventory-app --network host-network --env-file .env -p 8080:8080 inventory-app:v1
 ```  
 
 **Test the API with FastAPI Swagger**  
@@ -130,7 +123,7 @@ http://localhost:8080/docs
 
 **Build container image**  
 ```
-sudo build -t billing-db:v1 .
+sudo docker build -t billing-db:v1 .
 ```  
 
 **Volume creation**  
@@ -143,8 +136,42 @@ sudo docker volume create billing-db
 docker run -d \
   --name billing-db \
   --env-file .env \
-  -p 5432:5432 \
+  -p 5433:5433 \
   -v billing-db:/var/lib/postgresql/data \
   billing-db:v1
 ```  
 
+
+
+
+
+
+
+
+
+new test:
+
+# Network
+docker network create my-network
+
+# Inventory-db
+docker volume create inventory-db
+docker build -t inventory-db:v1 .
+docker run -d --name inventory-db --network my-network --env-file .env -v inventory-db:/var/lib/postgresql/data inventory-db:v1
+
+# Inventory-app
+docker build -t inventory-app:v1 .
+docker run -d --name inventory-app --network my-network --env-file .env -p 8080:8080 inventory-app:v1
+
+# Billing-db
+docker volume create billing-db
+docker build -t billing-db:v1 .
+docker run -d --name billing-db --network my-network --env-file .env -v billing-db:/var/lib/postgresql/data billing-db:v1
+
+# Billing-app
+docker build -t billing-app:v1 .
+docker run -d --name billing-app --network my-network --env-file .env billing-app:v1
+
+# RabbitMQ
+docker build -t rabbitmq:v1 .
+docker run -d --name rabbitmq --network my-network --env-file .env -p 15672:15672 rabbitmq:v1
