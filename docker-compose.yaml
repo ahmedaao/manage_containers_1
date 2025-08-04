@@ -1,0 +1,112 @@
+services:
+  inventory-db:
+    build: ./inventory-db
+    image: inventory-db:v1
+    container_name: inventory-db
+    env_file:
+      - ./inventory-db/.env
+    volumes:
+      - inventory-db:/var/lib/postgresql/data
+    networks:
+      - my-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  billing-db:
+    build: ./billing-db
+    image: billing-db:v1
+    container_name: billing-db
+    env_file:
+      - ./billing-db/.env
+    volumes:
+      - billing-db:/var/lib/postgresql/data
+    networks:
+      - my-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  inventory-app:
+    build: ./inventory-app
+    image: inventory-app:v1
+    container_name: inventory-app
+    env_file:
+      - ./inventory-app/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+    networks:
+      - my-network
+
+
+  billing-app:
+    build: ./billing-app
+    image: billing-app:v1
+    container_name: billing-app
+    env_file:
+      - ./billing-app/.env
+    depends_on:
+      billing-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - my-network
+
+
+  rabbitmq:
+    build: ./rabbitmq
+    image: rabbitmq:v1
+    container_name: rabbitmq
+    env_file:
+      - ./rabbitmq/.env
+    networks:
+      - my-network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  api-gateway-app:
+    build: ./api-gateway-app
+    image: api-gateway-app:v1
+    container_name: api-gateway-app
+    env_file:
+      - ./api-gateway-app/.env
+    volumes:
+      - api-gateway-app:/var/lib/api/data
+    ports:
+      - "3000:3000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      billing-app:
+        condition: service_started
+      inventory-app:
+        condition: service_started
+    networks:
+      - my-network
+  
+
+
+networks:
+  my-network:
+    driver: bridge
+
+
+
+volumes:
+  inventory-db:
+  billing-db:
+  api-gateway-app:
