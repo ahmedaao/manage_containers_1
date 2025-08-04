@@ -1,75 +1,70 @@
 import json
 import os
-import pika
-import psycopg2
+import asyncio
+import asyncpg
+import aio_pika
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
-# Configuration
+# PostgreSQL config
 BILLING_DB_HOST = os.getenv('BILLING_DB_HOST')
 BILLING_DB_NAME = os.getenv('BILLING_DB_NAME')
 BILLING_DB_USER = os.getenv('BILLING_DB_USER')
 BILLING_DB_PASSWORD = os.getenv('BILLING_DB_PASSWORD')
 BILLING_DB_PORT = int(os.getenv('BILLING_DB_PORT'))
 
+# RabbitMQ config
 RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
-RABBITMQ_USER = os.getenv('RABBITMQ_USER')
-RABBITMQ_PASSWORD = os.getenv('RABBITMQ_PASSWORD')
 RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT'))
 QUEUE_NAME = os.getenv('QUEUE_NAME')
 
-def connect_db():
-    """Connect to PostgreSQL"""
-    return psycopg2.connect(
+# Async PostgreSQL connection
+async def connect_db():
+    return await asyncpg.connect(
         host=BILLING_DB_HOST,
-        database=BILLING_DB_NAME,
+        port=BILLING_DB_PORT,
         user=BILLING_DB_USER,
         password=BILLING_DB_PASSWORD,
-        port=BILLING_DB_PORT
+        database=BILLING_DB_NAME
     )
 
-def connect_rabbitmq():
-    """Connect to RabbitMQ without credentials"""
-    # credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT))
-    channel = connection.channel()
-    channel.queue_declare(queue=QUEUE_NAME, durable=True)
-    return connection, channel
+# Callback for each message
+async def process_message(message: aio_pika.IncomingMessage):
+    async with message.process():  # auto ack
+        try:
+            data = json.loads(message.body.decode())
 
-def process_message(ch, method, properties, body):
-    """Process a single message from billing_queue"""
-    try:
-        message = json.loads(body.decode('utf-8'))
-        
-        user_id = int(message['user_id'])
-        number_of_items = int(message['number_of_items'])
-        total_amount = float(message['total_amount'])
+            user_id = int(data["user_id"])
+            number_of_items = int(data["number_of_items"])
+            total_amount = float(data["total_amount"])
 
-        db_conn = connect_db()
-        cursor = db_conn.cursor()
-        cursor.execute("""
-            INSERT INTO orders (user_id, number_of_items, total_amount)
-            VALUES (%s, %s, %s)
-        """, (user_id, number_of_items, total_amount))
-        db_conn.commit()
+            conn = await connect_db()
+            await conn.execute("""
+                INSERT INTO orders (user_id, number_of_items, total_amount)
+                VALUES ($1, $2, $3)
+            """, user_id, number_of_items, total_amount)
+            await conn.close()
 
-        cursor.close()
-        db_conn.close()
+            print(f"Processed order: user_id={user_id}, items={number_of_items}, amount={total_amount:.2f}")
 
-        ch.basic_ack(delivery_tag=method.delivery_tag)
-        print(f"[✓] Processed order: user_id={user_id}, items={number_of_items}, amount={total_amount:.2f}")
+        except Exception as e:
+            print(f"Error processing message: {e}")
 
-    except Exception as e:
-        print(f"[!] Error processing message: {e}")
-        ch.basic_nack(delivery_tag=method.delivery_tag)
+# Main async logic
+async def start_consumer():
+    connection = await aio_pika.connect_robust(
+        host=RABBITMQ_HOST,
+        port=RABBITMQ_PORT,
+    )
+    channel = await connection.channel()
+    queue = await channel.declare_queue(QUEUE_NAME, durable=True)
 
-# Connect to RabbitMQ
-connection, channel = connect_rabbitmq()
+    print("Waiting for messages...")
+    await queue.consume(process_message)
 
-# Start consuming messages
-channel.basic_consume(queue=QUEUE_NAME, on_message_callback=process_message)
+    await asyncio.Future()  # keep running
 
-print("Waiting for messages...")
-channel.start_consuming()
+# Run the consumer directly
+asyncio.run(start_consumer())

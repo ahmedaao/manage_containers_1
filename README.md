@@ -2,6 +2,7 @@
   <summary><strong>Table of Contents</strong></summary>  
   
   - [Prerequisites](#prerequisites)
+  - [Architecture](#architecture)
   - [Commands](#commands)
   - [Container](#container)
     - [Listing](#listing)
@@ -40,6 +41,11 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 docker --version
 docker compose version
 ```  
+
+
+
+# Architecture
+[Architecture](!diagram.png)   
 
 
 
@@ -161,7 +167,7 @@ docker run -d --name inventory-db --network my-network --env-file .env -v invent
 
 # Inventory-app
 docker build -t inventory-app:v1 .
-docker run -d --name inventory-app --network my-network --env-file .env -p 8080:8080 inventory-app:v1
+docker run -d --name inventory-app --network my-network --env-file .env inventory-app:v1
 
 # Billing-db
 docker volume create billing-db
@@ -174,4 +180,9 @@ docker run -d --name billing-app --network my-network --env-file .env billing-ap
 
 # RabbitMQ
 docker build -t rabbitmq:v1 .
-docker run -d --name rabbitmq --network my-network --env-file .env -p 15672:15672 rabbitmq:v1
+docker run -d --name rabbitmq --network my-network --env-file .env rabbitmq:v1
+
+# Api-gateway-app
+docker volume create api-gateway-app
+docker build -t api-gateway-app:v1 .
+docker run -d --name api-gateway-app --network my-network --env-file .env -p 3000:3000 -v api-gateway-app:/var/lib/api/data api-gateway-app:v1
