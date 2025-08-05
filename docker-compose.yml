@@ -1,10 +1,13 @@
+version: '3.8'
+
+
 services:
   inventory-db:
-    build: ./inventory-db
+    build: ./services/inventory-db
     image: inventory-db:v1
     container_name: inventory-db
     env_file:
-      - ./inventory-db/.env
+      - ./services/inventory-db/.env
     volumes:
       - inventory-db:/var/lib/postgresql/data
     networks:
@@ -17,11 +20,11 @@ services:
 
 
   billing-db:
-    build: ./billing-db
+    build: ./services/billing-db
     image: billing-db:v1
     container_name: billing-db
     env_file:
-      - ./billing-db/.env
+      - ./services/billing-db/.env
     volumes:
       - billing-db:/var/lib/postgresql/data
     networks:
@@ -34,11 +37,11 @@ services:
 
 
   inventory-app:
-    build: ./inventory-app
+    build: ./services/inventory-app
     image: inventory-app:v1
     container_name: inventory-app
     env_file:
-      - ./inventory-app/.env
+      - ./services/inventory-app/.env
     ports:
       - "8080:8080"
     depends_on:
@@ -49,11 +52,11 @@ services:
 
 
   billing-app:
-    build: ./billing-app
+    build: ./services/billing-app
     image: billing-app:v1
     container_name: billing-app
     env_file:
-      - ./billing-app/.env
+      - ./services/billing-app/.env
     depends_on:
       billing-db:
         condition: service_healthy
@@ -64,11 +67,11 @@ services:
 
 
   rabbitmq:
-    build: ./rabbitmq
+    build: ./services/rabbitmq
     image: rabbitmq:v1
     container_name: rabbitmq
     env_file:
-      - ./rabbitmq/.env
+      - ./services/rabbitmq/.env
     networks:
       - my-network
     healthcheck:
@@ -79,11 +82,11 @@ services:
 
 
   api-gateway-app:
-    build: ./api-gateway-app
+    build: ./services/api-gateway-app
     image: api-gateway-app:v1
     container_name: api-gateway-app
     env_file:
-      - ./api-gateway-app/.env
+      - ./services/api-gateway-app/.env
     volumes:
       - api-gateway-app:/var/lib/api/data
     ports:
@@ -99,6 +102,27 @@ services:
       - my-network
   
 
+  frontend-app:
+    build: ./services/frontend-app
+    image: frontend-app:v1
+    container_name: frontend-app
+    env_file:
+      - ./services/frontend-app/.env
+    ports:
+      - "8501:8501"
+    depends_on:
+      api-gateway-app:
+        condition: service_started
+    networks:
+      - my-network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+
 
 networks:
   my-network:
@@ -110,3 +134,4 @@ volumes:
   inventory-db:
   billing-db:
   api-gateway-app:
+  
