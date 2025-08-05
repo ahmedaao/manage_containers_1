@@ -1,6 +1,7 @@
 <details>  
   <summary><strong>Table of Contents</strong></summary>  
   
+  - [Introduction](#introduction)
   - [Prerequisites](#prerequisites)
   - [Architecture](#architecture)
   - [Commands](#commands)
@@ -14,6 +15,12 @@
     - [Api-gateway-app](#api-gateway-app)
   - [Test](#test)
 </details>  
+
+
+
+# Introduction
+This project aims to discover the container concepts and tools, and practice these tools by creating a microservices architecture with docker and docker-compose.  
+For more details, it happens [here](https://github.com/01-edu/public/blob/master/subjects/devops/crud-master-py/README.md)  
 
 
 
@@ -49,7 +56,7 @@ docker compose version
 
 
 # Architecture
-[Architecture](!diagram.png)   
+![Architecture](diagram.png)   
 
 
 
@@ -78,39 +85,54 @@ docker compose version
 
 # Setup
 ## Network
+```
 docker network create my-network  
+```  
 
 ## Inventory-db
+```
 docker volume create inventory-db  
 docker build -t inventory-db:v1 .  
 docker run -d --name inventory-db --network my-network --env-file .env -v inventory-db:/var/lib/postgresql/data inventory-db:v1  
+```  
 
 ## Inventory-app
+```
 docker build -t inventory-app:v1 .  
 docker run -d --name inventory-app --network my-network --env-file .env inventory-app:v1  
+```  
 
 ## Billing-db
+```
 docker volume create billing-db  
 docker build -t billing-db:v1 .  
 docker run -d --name billing-db --network my-network --env-file .env -v billing-db:/var/lib/postgresql/data billing-db:v1  
+```  
 
 ## Billing-app
+```
 docker build -t billing-app:v1 .  
 docker run -d --name billing-app --network my-network --env-file .env billing-app:v1  
+```  
 
 ## RabbitMQ
+```
 docker build -t rabbitmq:v1 .  
 docker run -d --name rabbitmq --network my-network --env-file .env rabbitmq:v1  
+```  
 
 ## Api-gateway-app
+```
 docker volume create api-gateway-app  
 docker build -t api-gateway-app:v1 .  
 docker run -d --name api-gateway-app --network my-network --env-file .env -p 3000:3000 -v api-gateway-app:/var/lib/api/data api-gateway-app:v1  
+```  
 
 
 
 # Test
 **Add data into inventory-db**  
+```
 curl -X POST \
   http://localhost:3000/api/movies \
   -H 'accept: application/json' \
@@ -119,8 +141,10 @@ curl -X POST \
   "title": "aquaman",
   "description": "aquaman is a good movie"
 }'
+```  
 
 **Add data into billing-db**  
+```
 curl -X 'POST' \
   'http://localhost:3000/api/billing' \
   -H 'accept: application/json' \
@@ -130,3 +154,4 @@ curl -X 'POST' \
   "number_of_items": "99",
   "total_amount": "250"
 }'
+```  
